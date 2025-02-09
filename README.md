@@ -9,25 +9,23 @@ ___
 -  **Python 3.XX.x**
 
 ___
-## install 
+## Установка 
 ```bash
 git clone https://github.com/yinmus/HTML-parser.git
 ```
-### compile
+**Компиляция**
 ```bash
 make
 ```
-### run
+**Запуск**
 
 ```bash
 make run
 ```
-OR:
-
 ```bash
 python server.py
 ```
-### clean
+**Очистка**
 ```bash
 make clean
 ```
