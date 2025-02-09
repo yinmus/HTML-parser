@@ -25,6 +25,8 @@ make run
 ```bash
 python server.py
 ```
+![scr2](.img/scr2.png)
+
 **Очистка**
 ```bash
 make clean
@@ -32,5 +34,4 @@ make clean
 
 ___
 ## example:
-![scr2](.img/scr2.png)
 ![scr](.img/screen.png)
