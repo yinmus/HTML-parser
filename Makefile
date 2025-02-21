@@ -45,8 +45,4 @@ clean:
 run: $(TARGET_LIB)
 	$(PYTHON) server.py
 
-#Если Linux
-#lsof:
-#	@read -p "port : " PORT; \
-#	sudo lsof -i :$$PORT
 
