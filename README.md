@@ -9,7 +9,7 @@ cd HTML-parser/
 ```
 
 #### Info:
-**[Docs](docs.md)
+**[Docs](docs.md)**
 
 ___
 ## example:
