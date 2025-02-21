@@ -35,3 +35,19 @@ make clean
 ___
 ## example:
 ![scr](.img/screen.png)
+___
+## examples
+**HTML files:**
+- **[Directory](examples/)**
+  - ***[HTML example file - 1](examples/html/index.html)***
+  - ***[HTML example file - 2](examples/html/index2.html)***
+**CSS files:**
+
+- **[Directory](examples/)**
+  - ***[CSS example file - 1](examples/css/styles.css)***
+  - ***[CSS example file - 2](examples/css/styles2.css)***
+ 
+
+
+  #### More..
+  [Docs](docs.md)
