@@ -42,7 +42,5 @@ $(OBJ_DIR)/%.o: $(SRC_DIR)/%.c
 clean:
 	$(RM) $(OBJ_DIR) $(TARGET_LIB)
 
-run: $(TARGET_LIB)
-	$(PYTHON) server.py
 
 
