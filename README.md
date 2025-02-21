@@ -51,5 +51,5 @@ ___
  
 
 
-  #### More..
-  [Docs](docs.md)
+#### More..
+[Docs](docs.md)
