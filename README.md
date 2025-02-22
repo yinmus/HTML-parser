@@ -13,7 +13,7 @@ cd HTML-parser/
 
 ___
 ## example:
-<img src=".img/screen.png" alt="scr" width="200">
+<img src=".img/screen.png" alt="scr" width="550">
 ___
 ## examples
 **HTML files:**
