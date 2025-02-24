@@ -6,62 +6,86 @@ import socket
 from http.server import SimpleHTTPRequestHandler
 from socketserver import TCPServer
 
-def f(ext): return [x for x in os.listdir('.') if x.endswith(ext)]
+def is_port_in_use(port):
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        return s.connect_ex(("localhost", port)) == 0
 
-def ask(ext, def_v=None):
-    if def_v == "None": return None
-    if def_v: return def_v
-    files = f(ext)
-    for i, x in enumerate(files, 1): print(f"{i}. {x}")
-    ch = input("Num/Path: ").strip()
-    return files[int(ch)-1] if ch.isdigit() and 1 <= int(ch) <= len(files) else ch or None
+def kill_process_using_port(port):
+    if sys.platform.startswith("linux"):
+        os.system(f"fuser -k {port}/tcp")
+    elif sys.platform.startswith("win"):
+        os.system(f"for /f \"tokens=5\" %i in ('netstat -ano ^| findstr :{port}') do taskkill /F /PID %i")
+    else:
+        print("Пожалуйста, завершите процесс вручную.")
 
-def p_in_use(p): 
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s: return s.connect_ex(("localhost", p)) == 0
+def load_library():
+    lib = ctypes.CDLL('./libparser.so')
+    lib.parse_html.argtypes = [ctypes.c_char_p]
+    lib.parse_js.argtypes = [ctypes.c_char_p]
+    lib.parse_css.argtypes = [ctypes.c_char_p]
+    return lib
 
-def kill(p):
-    if sys.platform.startswith("linux"): os.system(f"fuser -k {p}/tcp")
-    elif sys.platform.startswith("win"): os.system(f"netstat -ano | findstr :{p} > temp.txt && for /f \"tokens=5\" %i in (temp.txt) do taskkill /F /PID %i && del temp.txt")
-    else: print("Kill manually.")
+class CustomRequestHandler(SimpleHTTPRequestHandler):
+    def __init__(self, *args, **kwargs):
+        self.html_path = kwargs.pop('html_path', None)
+        self.js_path = kwargs.pop('js_path', None)
+        self.css_path = kwargs.pop('css_path', None)
+        self.lib = kwargs.pop('lib', None)
+        super().__init__(*args, **kwargs)
 
-if len(sys.argv) > 1: port = int(sys.argv[1]) if sys.argv[1].isdigit() else None
-else: port = int(input("Port: "))
-
-if port and p_in_use(port):
-    if input(f"Port {port} in use. Kill? [y/n]: ").strip().lower() == "y": kill(port)
-    else: sys.exit(1)
-
-HTML = ask(".html", sys.argv[2] if len(sys.argv) > 2 else None)
-JS = ask(".js", sys.argv[3] if len(sys.argv) > 3 else None)
-CSS = ask(".css", sys.argv[4] if len(sys.argv) > 4 else None)
-
-lib = ctypes.CDLL('./libparser.so')
-lib.parse_html.argtypes = [ctypes.c_char_p]
-lib.parse_js.argtypes = [ctypes.c_char_p]
-lib.parse_css.argtypes = [ctypes.c_char_p]
-
-class H(SimpleHTTPRequestHandler):
     def do_GET(self):
-        if self.path == '/' and HTML:
-            with open(HTML, "r") as f: lib.parse_html(f.read().encode('utf-8'))
-        if self.path == '/styles.css' and CSS:
-            with open(CSS, "r") as f: lib.parse_css(f.read().encode('utf-8'))
-        if self.path == '/script.js' and JS:
-            with open(JS, "r") as f: lib.parse_js(f.read().encode('utf-8'))
-        return super().do_GET()
+        if self.path == '/' and os.path.exists(self.html_path):
+            self.serve_file(self.html_path, "text/html", self.lib.parse_html)
+        elif self.path == '/script.js' and self.js_path != "None" and os.path.exists(self.js_path):
+            self.serve_file(self.js_path, "application/javascript", self.lib.parse_js)
+        elif self.path == '/styles.css' and self.css_path != "None" and os.path.exists(self.css_path):
+            self.serve_file(self.css_path, "text/css", self.lib.parse_css)
+        else:
+            super().do_GET()
 
-def shutdown(s, f):
-    print("Shutting down...")
+    def serve_file(self, file_path, content_type, parse_func):
+        with open(file_path, "r") as f:
+            content = f.read()
+            parse_func(content.encode('utf-8'))
+            self.send_response(200)
+            self.send_header("Content-type", content_type)
+            self.end_headers()
+            self.wfile.write(content.encode('utf-8'))
+
+def shutdown(signum, frame):
+    print("Завершение работы...")
     httpd.server_close()
     sys.exit(0)
 
-signal.signal(signal.SIGINT, shutdown)
-signal.signal(signal.SIGTERM, shutdown)
+def main():
+    if len(sys.argv) < 3:
+        print("Использование: python server.py <port> <html> [js] [css]")
+        sys.exit(1)
 
-httpd = TCPServer(("", port), H)
+    port = int(sys.argv[1])
+    html, js, css = sys.argv[2], sys.argv[3] if len(sys.argv) > 3 else None, sys.argv[4] if len(sys.argv) > 4 else None
 
-print(f"Running on http://localhost:{port}")
-try:
-    httpd.serve_forever()
-except KeyboardInterrupt:
-    shutdown(None, None)
+    if is_port_in_use(port):
+        choice = input(f"Порт {port} используется. Завершить процесс? [y/n]: ").strip().lower()
+        if choice == 'y':
+            kill_process_using_port(port)
+            while is_port_in_use(port):
+                pass
+        else:
+            sys.exit(1)
+
+    lib = load_library()
+    signal.signal(signal.SIGINT, shutdown)
+    signal.signal(signal.SIGTERM, shutdown)
+
+    handler = lambda *args, **kwargs: CustomRequestHandler(*args, **kwargs, html_path=html, js_path=js, css_path=css, lib=lib)
+    httpd = TCPServer(("", port), handler)
+    print(f"Сервер запущен на http://localhost:{port}")
+
+    try:
+        httpd.serve_forever()
+    except KeyboardInterrupt:
+        shutdown(None, None)
+
+if __name__ == "__main__":
+    main()
