@@ -6,6 +6,7 @@ ___
 ```bash
 git clone https://github.com/yinmus/HTML-parser.git
 cd HTML-parser/
+make
 ```
 
 # Info:
