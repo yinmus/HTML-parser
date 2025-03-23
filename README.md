@@ -1,6 +1,5 @@
 # Parser
 
-**python код запускает localhost страничку**
 ___
 ## Установка 
 ```bash
